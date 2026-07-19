@@ -1,4 +1,4 @@
-# LinkLocal
+# LocalLink
 
 *   **Note: ** This is still underdevelopment, where the design and technologies we are using might change. 
 
@@ -6,7 +6,7 @@ An offline-first, decentralized P2P messaging engine featuring automated, asynch
 
 ## 📌 Overview
 
-**LinkLocal** is a resilient communication framework built to keep people connected when centralized internet infrastructure fails or becomes compromised. When standard networks are down, the tool establishes a secure, local peer-to-peer (P2P) mesh network over an available Wi-Fi connection. 
+**LocalLink** is a resilient communication framework built to keep people connected when centralized internet infrastructure fails or becomes compromised. When standard networks are down, the tool establishes a secure, local peer-to-peer (P2P) mesh network over an available Wi-Fi connection. 
 
 The moment *any* single device within the local mesh regains internet access, it automatically acts as a gateway bridge. It checks the local database for unsynced offline message queues and updates them directly into a federated Matrix room—ensuring the conversation seamlessly flows onto the global open web without forcing users to rely on closed, centralized platforms.
 
@@ -36,10 +36,14 @@ A standalone, local-first system that ensures messages are securely committed to
 ### 3. Bridge Layer (The Gateway)
 An intelligent client wrapper connecting your local network to the global **Matrix Protocol**. It watches local system interfaces for internet routes and safely pipes queued logs to Matrix rooms via REST APIs, allowing standard Matrix clients like **Element** to join the chat stream.
 
+### 4. Presentation Layer (The UI Demo)
+Handles all user interaction, text rendering, and view state management. Because it interacts solely with the engine's public APIs, you can swap between the immersive terminal UI or the browser demo seamlessly without rewriting core logic.
+
 ## 🛠 Tech Stack
 
 | Layer | Component / Technology | Operational Role |
 | :--- | :--- | :--- |
+| **Presentation** | Textual (TUI) / HTML & JS | Visual environments for user interaction and interface control |
 | **Global Federation** | Matrix Protocol | Open, decentralized network standard for global message sync |
 | **Local Mesh Networking** | mDNS (Zeroconf) + HTTP/REST | Dynamic peer discovery and point-to-point message transmission |
 | **Application Core** | Python / Flask | High-speed local API routing and modular engine processing |
@@ -49,7 +53,7 @@ An intelligent client wrapper connecting your local network to the global **Matr
 ## 📁 Repository Layout
 
 ```text
-/LinkLocal
+/LocalLink
 ├── engine/                     # Standalone headless core backend
 │   ├── mesh/                   # P2P discovery & local network routing
 │   │   ├── discovery.py        # mDNS broadcasting & listener loops
@@ -74,3 +78,15 @@ An intelligent client wrapper connecting your local network to the global **Matr
 │   └── server.py               # Flask pipeline presenting the browser UI
 ├── requirements.txt            # Dependency listings
 └── run.py                      # Master execution entrypoint
+
+**[To Do]**
+
+## 📊 Development Status & Progress Tracker
+
+### 🟠 Phase 1: Core Engine & Architecture [In Progress]
+
+### ⚪ Phase 2: Presentation Layer & TUI
+
+### ⚪ Phase 3: The Matrix Gateway Bridge
+
+### ⚪ Phase 4: Verification & Microcontroller Exploration
