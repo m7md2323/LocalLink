@@ -1,4 +1,5 @@
 # LocalLink
+<img width="1408" height="768" alt="image" src="https://github.com/user-attachments/assets/696889cb-674c-4860-b5ab-f1d6ccf86065" />
 
 *   **Note: ** This is still underdevelopment, where the design and technologies we are using might change. 
 
