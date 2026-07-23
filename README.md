@@ -79,6 +79,7 @@ Handles all user interaction, text rendering, and view state management. Because
 │   └── server.py               # Flask pipeline presenting the browser UI
 ├── requirements.txt            # Dependency listings
 └── run.py                      # Master execution entrypoint
+```
 
 **[To Do]**
 

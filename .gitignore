@@ -1,0 +1,24 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment and secrets
+.env
+.env.local
+
+# Databases & local state
+*.db
+*.sqlite
+*.sqlite3
+
+# Crypto keys & security credentials
+.keys/
+*.pem
+*.key
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
