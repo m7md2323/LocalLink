@@ -81,14 +81,29 @@ Handles all user interaction, text rendering, and view state management. Because
 └── run.py                      # Master execution entrypoint
 ```
 
-**[To Do]**
-
 ## 📊 Development Status & Progress Tracker
 
 ### 🟠 Phase 1: Core Engine & Architecture [In Progress]
+- [x] **Repository Blueprint & Project Structure**: Architecture definition and module layout.
+- [x] **Environment Configuration**: Set up `.env`, `.env.example`, and `.gitignore` for secrets & project settings.
+- [x] **Data Storage Models**: Implemented `Peer`, `Message`, and `Room` dataclasses in [`engine/storage/models.py`].
+- [ ] **SQLite Database Abstraction**: Create schema definitions and CRUD transaction handlers in `engine/storage/database.py`.
+- [ ] **Cryptographic Security Suite**: Implement PyNaCl keypair generation (`security/keys.py`) and E2EE box encryption (`security/crypto.py`).
+- [ ] **Peer Discovery Engine**: Implement Zeroconf / mDNS local node discovery in `engine/mesh/discovery.py`.
+- [ ] **P2P HTTP Server & Client**: Build inbound traffic listener (`mesh/server.py`) and outbound payload dispatcher (`network/client.py`).
 
-### ⚪ Phase 2: Presentation Layer & TUI
+### ⚪ Phase 2: Presentation Layer & User Interfaces
+- [ ] **CLI Terminal Interface (TUI)**: Build interactive Rich/Textual terminal interface in `cli/`.
+- [ ] **Web Interface Demo**: Build lightweight web dashboard demo in `web/`.
+- [ ] **Engine API Facade**: Expose unified Python API bindings for UI layers.
 
 ### ⚪ Phase 3: The Matrix Gateway Bridge
+- [ ] **Network State Watcher**: Detect internet connectivity restoration dynamically.
+- [ ] **Asynchronous Queue Worker**: Implement delta sync worker (`bridge/matrix_sync.py`) to process unsynced offline messages (`is_synced = False`).
+- [ ] **Matrix Room Federation**: Connect local rooms to Matrix rooms via Matrix REST client APIs.
 
-### ⚪ Phase 4: Verification & Microcontroller Exploration
+### ⚪ Phase 4: Verification & Hardware Exploration
+- [ ] **Multi-Node Mesh Testing**: End-to-end simulation of local P2P mesh offline messaging.
+- [ ] **NAT/Firewall Resilience**: Verify peer discovery and packet relay across restricted NATs.
+- [ ] **Microcontroller Exploration**: Benchmarks and lightweight ports for ESP32 / Raspberry Pi Zero hardware.
+
