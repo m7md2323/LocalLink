@@ -51,7 +51,7 @@ Handles all user interaction, text rendering, and view state management. Because
 | **Data Persistence** | SQLite | Serverless, file-based database for complete local data ownership |
 | **Security Layer** | PyNaCl (libsodium) | Authenticated public-key cryptography for end-to-end security |
 
-## 📁 Repository Layout
+## 📁 Repository Layout (Initial)
 
 ```text
 /LocalLink

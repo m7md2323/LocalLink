@@ -1,3 +1,3 @@
-from engine.storage.models import Message
+from engine.storage.models import Peer, Message, Room
 
-__all__ = ["Message"]
+__all__ = ["Peer", "Message", "Room"]
