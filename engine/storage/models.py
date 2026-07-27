@@ -1,27 +1,46 @@
 import time
 import uuid
-from dataclasses import dataclass, field
-from typing import Optional
 
-@dataclass
-class Peer:
+from peewee import (
+    BooleanField,
+    CharField,
+    CompositeKey,
+    FloatField,
+    ForeignKeyField,
+    IntegerField,
+    Model,
+    TextField,
+)
+
+from engine.storage.database import db
+
+
+class BaseModel(Model):
+    """Base Peewee model bound to the LocalLink SQLite database."""
+
+    class Meta:
+        database = db
+
+
+class Peer(BaseModel):
     """Represents a discovered node/peer device on the local mesh network."""
-    peer_id: str
-    public_key: str = ""
-    name: str = ""
-    ip_address: str = "127.0.0.1"
-    port: int = 5000
-    last_active: float = field(default_factory=time.time)
-    is_online: bool = True
+
+    peer_id = CharField(primary_key=True)
+    public_key = TextField(default="")
+    name = CharField(default="")
+    ip_address = CharField(default="127.0.0.1")
+    port = IntegerField(default=5000)
+    last_active = FloatField(default=time.time)
+    is_online = BooleanField(default=True)
 
     def endpoint_url(self) -> str:
         return f"http://{self.ip_address}:{self.port}"
 
-    def mark_online(self):
+    def mark_online(self) -> None:
         self.is_online = True
         self.last_active = time.time()
 
-    def mark_offline(self):
+    def mark_offline(self) -> None:
         self.is_online = False
 
     def to_dict(self) -> dict:
@@ -49,54 +68,28 @@ class Peer:
             is_online=bool(data.get("is_online", True)),
         )
 
-    def to_db_tuple(self) -> tuple:
-        """Convert Peer to an ordered tuple for SQLite INSERT queries."""
-        return (
-            self.peer_id,
-            self.public_key,
-            self.name,
-            self.ip_address,
-            self.port,
-            self.last_active,
-            1 if self.is_online else 0,
-        )
-
-    @classmethod
-    def from_db_row(cls, row: tuple) -> "Peer":
-        """Construct a Peer instance from an SQLite query result row."""
-        return cls(
-            peer_id=row[0],
-            public_key=row[1],
-            name=row[2],
-            ip_address=row[3],
-            port=row[4],
-            last_active=float(row[5]),
-            is_online=bool(row[6]),
-        )
-
-
-@dataclass
-class Message:
+class Message(BaseModel):
     """Represents a message payload sent over the local mesh network or Matrix bridge."""
-    sender_id: str
-    content: str
-    room_id: str = "default"
-    message_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    signature: Optional[str] = None
-    timestamp: float = field(default_factory=time.time)
-    is_synced: bool = False
-    matrix_event_id: Optional[str] = None
 
-    def mark_synced(self) :
-        self.is_synced=True
+    message_id = CharField(primary_key=True, default=lambda: str(uuid.uuid4()))
+    sender_id = CharField()
+    content = TextField()
+    room_id = CharField(default="default")
+    signature = TextField(null=True)
+    timestamp = FloatField(default=time.time)
+    is_synced = BooleanField(default=False)
+    matrix_event_id = CharField(null=True)
+
+    def mark_synced(self) -> None:
+        self.is_synced = True
 
     def to_dict(self) -> dict:
         """Convert Message to a dictionary for JSON transmission over P2P network."""
         return {
+            "message_id": self.message_id,
             "sender_id": self.sender_id,
             "content": self.content,
             "room_id": self.room_id,
-            "message_id": self.message_id,
             "signature": self.signature,
             "timestamp": self.timestamp,
             "is_synced": self.is_synced,
@@ -107,59 +100,35 @@ class Message:
     def from_dict(cls, data: dict) -> "Message":
         """Construct a Message instance from a received JSON dictionary payload."""
         return cls(
+            message_id=data.get("message_id", str(uuid.uuid4())),
             sender_id=data["sender_id"],
             content=data["content"],
             room_id=data.get("room_id", "default"),
-            message_id=data.get("message_id", str(uuid.uuid4())),
             signature=data.get("signature"),
             timestamp=float(data.get("timestamp", time.time())),
             is_synced=bool(data.get("is_synced", False)),
             matrix_event_id=data.get("matrix_event_id"),
         )
 
-    def to_db_tuple(self) -> tuple:
-        """Convert Message to an ordered tuple for SQLite INSERT queries."""
-        return (
-            self.message_id,
-            self.sender_id,
-            self.room_id,
-            self.content,
-            self.signature,
-            self.timestamp,
-            1 if self.is_synced else 0,
-            self.matrix_event_id,
-        )
 
-    @classmethod
-    def from_db_row(cls, row: tuple) -> "Message":
-        """Construct a Message instance from an SQLite query result row."""
-        return cls(
-            message_id=row[0],
-            sender_id=row[1],
-            room_id=row[2],
-            content=row[3],
-            signature=row[4],
-            timestamp=float(row[5]),
-            is_synced=bool(row[6]),
-            matrix_event_id=row[7],
-        )
-
-
-@dataclass
-class Room:
+class Room(BaseModel):
     """Represents a messaging room or channel between peers."""
-    room_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    name: str = ""
-    is_direct: bool = True
-    created_at: float = field(default_factory=time.time)
-    matrix_room_id: Optional[str] = None
+
+    room_id = CharField(primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = CharField(default="")
+    creator_id = CharField()
+    is_public = BooleanField(default=True)
+    password_hash = CharField(null=True)
+    created_at = FloatField(default=time.time)
+    matrix_room_id = CharField(null=True)
 
     def to_dict(self) -> dict:
         """Convert Room to a dictionary for JSON transmission over P2P network."""
         return {
             "room_id": self.room_id,
             "name": self.name,
-            "is_direct": self.is_direct,
+            "creator_id": self.creator_id,
+            "is_public": self.is_public,
             "created_at": self.created_at,
             "matrix_room_id": self.matrix_room_id,
         }
@@ -170,28 +139,41 @@ class Room:
         return cls(
             room_id=data.get("room_id", str(uuid.uuid4())),
             name=data.get("name", ""),
-            is_direct=bool(data.get("is_direct", True)),
+            creator_id=data["creator_id"],
+            is_public=bool(data.get("is_public", True)),
+            password_hash=data.get("password_hash"),
             created_at=float(data.get("created_at", time.time())),
             matrix_room_id=data.get("matrix_room_id"),
         )
 
-    def to_db_tuple(self) -> tuple:
-        """Convert Room to an ordered tuple for SQLite INSERT queries."""
-        return (
-            self.room_id,
-            self.name,
-            1 if self.is_direct else 0,
-            self.created_at,
-            self.matrix_room_id,
-        )
+
+class RoomMember(BaseModel):
+    """Represents a peer's membership in a room."""
+
+    room = ForeignKeyField(Room, backref="members", on_delete="CASCADE")
+    peer_id = CharField()
+    joined_at = FloatField(default=time.time)
+    role = CharField(default="member")
+
+    class Meta:
+        primary_key = CompositeKey("room", "peer_id")
+
+    def to_dict(self) -> dict:
+        """Convert RoomMember to a dictionary for JSON transmission."""
+        return {
+            "room_id": self.room_id,
+            "peer_id": self.peer_id,
+            "joined_at": self.joined_at,
+            "role": self.role,
+        }
 
     @classmethod
-    def from_db_row(cls, row: tuple) -> "Room":
-        """Construct a Room instance from an SQLite query result row."""
+    def from_dict(cls, data: dict) -> "RoomMember":
+        """Construct a RoomMember instance from a received JSON dictionary payload."""
         return cls(
-            room_id=row[0],
-            name=row[1],
-            is_direct=bool(row[2]),
-            created_at=float(row[3]),
-            matrix_room_id=row[4],
+            room=data["room_id"],
+            peer_id=data["peer_id"],
+            joined_at=float(data.get("joined_at", time.time())),
+            role=data.get("role", "member"),
         )
+
