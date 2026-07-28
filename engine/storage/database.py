@@ -29,6 +29,8 @@ db = SqliteQueueDatabase(db_path, pragmas={
     autostart=True
 )
 
+# Note: All of database methods are shrunk here, later we can make each model with his own methods in a seperated file.
+
 # Database config methods
 
 def init_db():
@@ -191,12 +193,18 @@ def list_rooms_by_creator(creator_id):
 
 
 def delete_room(room_id, creator_id):
+    """Delete a room, but only if the caller is its creator.
+
+    Returns True if a row was removed, False if no matching room existed
+    or the caller wasn't the creator (we treat both as "no change").
+    """
     deleted_count = (
         Room.delete()
-        .where(Room.room_id == room_id & Room.creator_id==creator_id)
+        .where(
+            (Room.room_id == room_id) & (Room.creator_id == creator_id)
+        )
         .execute()
     )
-    
     return deleted_count > 0
 
 
@@ -211,7 +219,7 @@ def join_room(room_id, peer_id, password=None):
         JoinResult.WRONG_PASSWORD  - private room, password didn't match
         JoinResult.ROOM_NOT_FOUND  - no room exists with that id
     """
-    # Step 1: fetch the room. get_or_none returns the row or None
+    # Step 1: fetch the room. get_or_none returns the row or None.
     room = Room.get_or_none(Room.room_id == room_id)
     if room is None:
         return JoinResult.ROOM_NOT_FOUND
@@ -229,7 +237,7 @@ def join_room(room_id, peer_id, password=None):
     if not can_join:
         return JoinResult.WRONG_PASSWORD
 
-    # Step 3: create the membership. Wrap in try/except because the
+    # Step 3: create the membership.
     try:
         RoomMember.create(
             room=room,
@@ -243,19 +251,80 @@ def join_room(room_id, peer_id, password=None):
 
 
 def leave_room(room_id, peer_id):
-    pass
+    """Remove a peer from a room.
+
+    If the leaving peer is the only admin of the room, the entire room
+    is deleted (cascading removes all members and messages).
+    Returns True if anything was changed, False if the peer wasn't a member.
+    """
+    # Find this peer's membership in the room. 
+    member = RoomMember.get_or_none(
+        RoomMember.room.room_id == room_id,
+        RoomMember.peer_id == peer_id,
+    )
+    # If the peer is not a member, return false.
+    if member is None:
+        return False
+
+    # If this peer is an admin and the only admin in this room, delete the room. 
+    if member.role == "admin":
+        admin_count = (
+            RoomMember.select()
+            .where(
+                RoomMember.room.room_id == room_id,
+                RoomMember.role == "admin",
+            )
+            .count()
+        )
+        if admin_count == 1:
+
+            delete_room(room_id)
+            return True
+
+    # This is a normal leave, just remove the RoomMember row.
+    deleted_count = (
+        RoomMember.delete()
+        .where(
+            RoomMember.room.room_id == room_id,
+            RoomMember.peer_id == peer_id,
+        )
+        .execute()
+    )
+    return deleted_count > 0
 
 
 def is_room_member(room_id, peer_id):
-    pass
+    """Return True if the peer is a member of the room, False otherwise."""
+    
+    return (
+        RoomMember.select()
+        .where(
+            RoomMember.room.room_id == room_id,
+            RoomMember.peer_id == peer_id,
+        )
+        .exists()
+    )
 
 
 def list_room_members(room_id):
-    pass
+    """Return all members of a room, oldest-joined first."""
+    
+    return list(
+        RoomMember.select()
+        .where(RoomMember.room.room_id == room_id)
+        .order_by(RoomMember.joined_at.asc())
+    )
 
 
 def list_joined_rooms(peer_id):
-    pass
+    """Return all rooms the peer is a member of, most recently joined first."""
+    
+    return list(
+        Room.select()
+        .join(RoomMember)
+        .where(RoomMember.peer_id == peer_id)
+        .order_by(RoomMember.joined_at.desc())
+    )
 
 
 # Password helpers for private rooms
@@ -296,7 +365,7 @@ def verify_password(password, password_hash):
     Returns True if it matches, False otherwise. Never raises —
     any malformed input is treated as a non-match.
     """
-    # Step 1: parse the stored string. If anything looks wrong, return False
+    # Step 1: parse the stored string. If anything looks wrong, return False.
     try:
         algorithm_tag, iterations_str, salt_hex, hash_hex = password_hash.split("$")
     except ValueError:
@@ -329,26 +398,92 @@ def verify_password(password, password_hash):
 # Message database operations
 
 def save_message(room_id, sender_id, content, signature=None):
-    pass
+    """Save a new message to a room.
+
+    The sender must be a member of the room. Returns the saved Message
+    instance, or None if the room doesn't exist or the sender isn't a member.
+    """
+    # Wrap the membership check and the insert in one transaction so a
+    # concurrent leave can't slip a non-member's message through between
+    # the check and the insert.
+    with db.atomic():
+        room = Room.get_or_none(Room.room_id == room_id)
+        if room is None:
+            return None
+        if not is_room_member(room_id, sender_id):
+            return None
+        message = Message.create(
+            room_id=room_id,
+            sender_id=sender_id,
+            content=content,
+            signature=signature,
+        )
+    return message
 
 
 def get_message(message_id):
-    pass
+    """Fetch a message by ID, or None if it doesn't exist."""
+    return Message.get_or_none(Message.message_id == message_id)
 
 
 def list_messages(room_id, peer_id, limit=None):
-    pass
+    """Return messages from a room, oldest first.
+
+    The peer must be a member of the room — non-members get an empty list.
+    Optional `limit` caps the number of returned messages (e.g., for
+    paginating "load the last 50 messages").
+    """
+    if not is_room_member(room_id, peer_id):
+        return []
+
+    query = (
+        Message.select()
+        .where(Message.room_id == room_id)
+        .order_by(Message.timestamp.asc())
+    )
+    
+    if limit is not None:
+        query = query.limit(limit)
+    return list(query)
 
 
 def list_unsynced_messages():
-    pass
+    """Return all messages where is_synced is False, oldest first.
+
+    Used by the Matrix bridge worker to know which messages still need
+    to be pushed upstream.
+    """
+    return list(
+        Message.select()
+        .where(Message.is_synced == False)
+        .order_by(Message.timestamp.asc())
+    )
 
 
 def mark_message_synced(message_id, matrix_event_id=None):
-    pass
+    """Mark a message as synced to Matrix and record the Matrix event ID.
+
+    Returns True if the message existed and was updated, False otherwise.
+    Uses a single UPDATE query — no need to fetch the row first.
+    """
+    updated = (
+        Message.update(
+            is_synced=True,
+            matrix_event_id=matrix_event_id,
+        )
+        .where(Message.message_id == message_id)
+        .execute()
+    )
+    return updated > 0
 
 
 def delete_message(message_id):
-    pass
+    """Delete a message by ID. Returns True if a row was removed."""
+    deleted_count = (
+        Message.delete()
+        .where(Message.message_id == message_id)
+        .execute()
+    )
+    return deleted_count > 0
 
 

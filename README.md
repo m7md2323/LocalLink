@@ -87,7 +87,7 @@ Handles all user interaction, text rendering, and view state management. Because
 - [x] **Repository Blueprint & Project Structure**: Architecture definition and module layout.
 - [x] **Environment Configuration**: Set up `.env`, `.env.example`, and `.gitignore` for secrets & project settings.
 - [x] **Data Storage Models**: Implemented `Peer`, `Message`, and `Room` dataclasses in [`engine/storage/models.py`].
-- [ ] **SQLite Database Abstraction**: Create schema definitions and CRUD transaction handlers in `engine/storage/database.py`.
+- [x] **SQLite Database Abstraction**: Create schema definitions and CRUD transaction handlers in `engine/storage/database.py`.
 - [ ] **Cryptographic Security Suite**: Implement PyNaCl keypair generation (`security/keys.py`) and E2EE box encryption (`security/crypto.py`).
 - [ ] **Peer Discovery Engine**: Implement Zeroconf / mDNS local node discovery in `engine/mesh/discovery.py`.
 - [ ] **P2P HTTP Server & Client**: Build inbound traffic listener (`mesh/server.py`) and outbound payload dispatcher (`network/client.py`).
