@@ -83,16 +83,16 @@ Handles all user interaction, text rendering, and view state management. Because
 
 ## 📊 Development Status & Progress Tracker
 
-### 🟠 Phase 1: Core Engine & Architecture [In Progress]
+### 🟢 Phase 1: Core Engine & Architecture [Done]
 - [x] **Repository Blueprint & Project Structure**: Architecture definition and module layout.
 - [x] **Environment Configuration**: Set up `.env`, `.env.example`, and `.gitignore` for secrets & project settings.
 - [x] **Data Storage Models**: Implemented `Peer`, `Message`, and `Room` dataclasses in [`engine/storage/models.py`].
 - [x] **SQLite Database Abstraction**: Create schema definitions and CRUD transaction handlers in `engine/storage/database.py`.
-- [ ] **Cryptographic Security Suite**: Implement PyNaCl keypair generation (`security/keys.py`) and E2EE box encryption (`security/crypto.py`).
+- [x] **Cryptographic Security Suite**: Implement PyNaCl keypair generation (`security/keys.py`) and E2EE box encryption (`security/crypto.py`).
 - [x] **Peer Discovery Engine**: Implement Zeroconf / mDNS local node discovery in `engine/mesh/discovery.py`.
-- [ ] **P2P HTTP Server & Client**: Build inbound traffic listener (`mesh/server.py`) and outbound payload dispatcher (`network/client.py`).
+- [x] **P2P HTTP Server & Client**: Build inbound traffic listener (`mesh/server.py`) and outbound payload dispatcher (`network/client.py`).
 
-### ⚪ Phase 2: Presentation Layer & User Interfaces
+### 🟠 Phase 2: Presentation Layer & User Interfaces [In Progress]
 - [ ] **CLI Terminal Interface (TUI)**: Build interactive Rich/Textual terminal interface in `cli/`.
 - [ ] **Web Interface Demo**: Build lightweight web dashboard demo in `web/`.
 - [ ] **Engine API Facade**: Expose unified Python API bindings for UI layers.

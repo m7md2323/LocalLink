@@ -12,14 +12,14 @@ from peewee import (
     TextField,
 )
 
-from engine.storage.database import db
+from engine.storage.connection import get_db
 
 
 class BaseModel(Model):
     """Base Peewee model bound to the LocalLink SQLite database."""
 
     class Meta:
-        database = db
+        database = get_db()
 
 
 class Peer(BaseModel):
@@ -68,49 +68,6 @@ class Peer(BaseModel):
             is_online=bool(data.get("is_online", True)),
         )
 
-class Message(BaseModel):
-    """Represents a message payload sent over the local mesh network or Matrix bridge."""
-
-    message_id = CharField(primary_key=True, default=lambda: str(uuid.uuid4()))
-    sender_id = CharField()
-    content = TextField()
-    room_id = CharField(default="default")
-    signature = TextField(null=True)
-    timestamp = FloatField(default=time.time)
-    is_synced = BooleanField(default=False)
-    matrix_event_id = CharField(null=True)
-
-    def mark_synced(self) -> None:
-        self.is_synced = True
-
-    def to_dict(self) -> dict:
-        """Convert Message to a dictionary for JSON transmission over P2P network."""
-        return {
-            "message_id": self.message_id,
-            "sender_id": self.sender_id,
-            "content": self.content,
-            "room_id": self.room_id,
-            "signature": self.signature,
-            "timestamp": self.timestamp,
-            "is_synced": self.is_synced,
-            "matrix_event_id": self.matrix_event_id,
-        }
-
-    @classmethod
-    def from_dict(cls, data: dict) -> "Message":
-        """Construct a Message instance from a received JSON dictionary payload."""
-        return cls(
-            message_id=data.get("message_id", str(uuid.uuid4())),
-            sender_id=data["sender_id"],
-            content=data["content"],
-            room_id=data.get("room_id", "default"),
-            signature=data.get("signature"),
-            timestamp=float(data.get("timestamp", time.time())),
-            is_synced=bool(data.get("is_synced", False)),
-            matrix_event_id=data.get("matrix_event_id"),
-        )
-
-
 class Room(BaseModel):
     """Represents a messaging room or channel between peers."""
 
@@ -144,6 +101,49 @@ class Room(BaseModel):
             password_hash=data.get("password_hash"),
             created_at=float(data.get("created_at", time.time())),
             matrix_room_id=data.get("matrix_room_id"),
+        )
+
+
+class Message(BaseModel):
+    """Represents a message payload sent over the local mesh network or Matrix bridge."""
+
+    message_id = CharField(primary_key=True, default=lambda: str(uuid.uuid4()))
+    sender_id = CharField()
+    content = TextField()
+    room = ForeignKeyField(Room, backref="messages", on_delete="CASCADE")
+    signature = TextField(null=True)
+    timestamp = FloatField(default=time.time)
+    is_synced = BooleanField(default=False)
+    matrix_event_id = CharField(null=True)
+
+    def mark_synced(self) -> None:
+        self.is_synced = True
+
+    def to_dict(self) -> dict:
+        """Convert Message to a dictionary for JSON transmission over P2P network."""
+        return {
+            "message_id": self.message_id,
+            "sender_id": self.sender_id,
+            "content": self.content,
+            "room_id": self.room_id,
+            "signature": self.signature,
+            "timestamp": self.timestamp,
+            "is_synced": self.is_synced,
+            "matrix_event_id": self.matrix_event_id,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "Message":
+        """Construct a Message instance from a received JSON dictionary payload."""
+        return cls(
+            message_id=data.get("message_id", str(uuid.uuid4())),
+            sender_id=data["sender_id"],
+            content=data["content"],
+            room=data["room_id"],
+            signature=data.get("signature"),
+            timestamp=float(data.get("timestamp", time.time())),
+            is_synced=bool(data.get("is_synced", False)),
+            matrix_event_id=data.get("matrix_event_id"),
         )
 
 
