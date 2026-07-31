@@ -5,6 +5,47 @@
 
 An offline-first, decentralized P2P messaging engine featuring automated, asynchronous syncing to the federated Matrix network.
 
+## 🚀 Quick start
+
+Install in one line (requires Python 3.10+):
+
+```bash
+curl -sSL https://raw.githubusercontent.com/anomalyco/LocalLink/main/install.sh | bash
+```
+
+Then run:
+
+```bash
+locallink
+```
+
+For detailed docs, commands, and configuration options, see the
+**[documentation page](docs/index.html)** or run `cp .env.example .env` and edit the file.
+
+### Hosting & deployment
+
+The documentation site is auto-deployed to **GitHub Pages** by
+`.github/workflows/docs.yml` on every push to `main`. The
+`.github/workflows/ci.yml` workflow runs the test suite across Linux
+and macOS with Python 3.10–3.12.
+
+To publish your own copy:
+
+1. Push the repo to GitHub.
+2. Go to **Settings → Pages → Source** and pick **GitHub Actions**.
+3. Push to `main` (or trigger the workflow manually) — your docs go
+   live at `https://<user>.github.io/LocalLink/`.
+
+To use a custom domain (e.g. `locallink.dev`), drop a `CNAME` file
+into `docs/` containing the bare domain name.
+
+To point the one-liner installer at your fork, set in `install.sh`:
+
+```bash
+DEFAULT_REPO="https://github.com/<your-username>/LocalLink.git"
+RAW_URL_DEFAULT="https://raw.githubusercontent.com/<your-username>/LocalLink/main/install.sh"
+```
+
 ## 📌 Overview
 
 **LocalLink** is a resilient communication framework built to keep people connected when centralized internet infrastructure fails or becomes compromised. When standard networks are down, the tool establishes a secure, local peer-to-peer (P2P) mesh network over an available Wi-Fi connection. 
@@ -92,18 +133,18 @@ Handles all user interaction, text rendering, and view state management. Because
 - [x] **Peer Discovery Engine**: Implement Zeroconf / mDNS local node discovery in `engine/mesh/discovery.py`.
 - [x] **P2P HTTP Server & Client**: Build inbound traffic listener (`mesh/server.py`) and outbound payload dispatcher (`network/client.py`).
 
-### 🟠 Phase 2: Presentation Layer & User Interfaces [In Progress]
-- [ ] **CLI Terminal Interface (TUI)**: Build interactive Rich/Textual terminal interface in `cli/`.
+### 🟢 Phase 2: Presentation Layer & User Interfaces [Done]
+- [x] **CLI Terminal Interface (TUI)**: Build interactive Rich/Textual terminal interface in `cli/`.
 - [ ] **Web Interface Demo**: Build lightweight web dashboard demo in `web/`.
-- [ ] **Engine API Facade**: Expose unified Python API bindings for UI layers.
+- [x] **Engine API Facade**: Expose unified Python API bindings for UI layers.
 
-### ⚪ Phase 3: The Matrix Gateway Bridge
-- [ ] **Network State Watcher**: Detect internet connectivity restoration dynamically.
-- [ ] **Asynchronous Queue Worker**: Implement delta sync worker (`bridge/matrix_sync.py`) to process unsynced offline messages (`is_synced = False`).
+### 🟢 Phase 3: The Matrix Gateway Bridge [Done, will not be included in the demo]
+- [x] **Network State Watcher**: Detect internet connectivity restoration dynamically.
+- [x] **Asynchronous Queue Worker**: Implement delta sync worker (`bridge/matrix_sync.py`) to process unsynced offline messages (`is_synced = False`).
 - [ ] **Matrix Room Federation**: Connect local rooms to Matrix rooms via Matrix REST client APIs.
 
-### ⚪ Phase 4: Verification & Hardware Exploration
+### 🟠 Phase 4: Verification & Hardware Exploration [In Progress]
+- [ ] **Full scanning of bugs, and Documentation web page**:
+- [ ] **Make the tool executable by one command**:
 - [ ] **Multi-Node Mesh Testing**: End-to-end simulation of local P2P mesh offline messaging.
 - [ ] **NAT/Firewall Resilience**: Verify peer discovery and packet relay across restricted NATs.
-- [ ] **Microcontroller Exploration**: Benchmarks and lightweight ports for ESP32 / Raspberry Pi Zero hardware.
-

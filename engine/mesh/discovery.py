@@ -1,13 +1,18 @@
 """Peer discovery engine for the LocalLink mesh network. """
 
 import logging
+import os
 import socket
 from zeroconf import ServiceBrowser, ServiceInfo, Zeroconf
 
-SERVICE_TYPE = "_locallink._tcp.local."
+SERVICE_TYPE = (
+    os.environ.get("LOCALLINK_MDNS_SERVICE", "").strip()
+    or "_locallink._tcp.local."
+)
 DEFAULT_PORT = 5000
 PEER_ID_KEY = "peer_id"
 PUBLIC_KEY_KEY = "pubkey"
+NAME_KEY = "name"
 IP_DISCOVERY_TARGET = "8.8.8.8"
 
 logger = logging.getLogger(__name__)
@@ -82,6 +87,7 @@ class LocalLinkListener:
 
         raw_peer_id = properties.get(PEER_ID_KEY.encode("utf-8"))
         raw_public_key = properties.get(PUBLIC_KEY_KEY.encode("utf-8"))
+        raw_name = properties.get(NAME_KEY.encode("utf-8"))
 
         if not raw_peer_id:
             return None
@@ -90,6 +96,9 @@ class LocalLinkListener:
         public_key = ""
         if raw_public_key:
             public_key = raw_public_key.decode("utf-8") if isinstance(raw_public_key, bytes) else raw_public_key
+        name = ""
+        if raw_name:
+            name = raw_name.decode("utf-8") if isinstance(raw_name, bytes) else raw_name
 
         # info.addresses is a list of raw address bytes. For a local
         # mesh we expect one IPv4 entry. socket.inet_ntoa turns the
@@ -104,6 +113,7 @@ class LocalLinkListener:
         return {
             "peer_id": peer_id,
             "public_key": public_key,
+            "name": name,
             "ip_address": ip_address,
             "port": info.port,
             "is_online": True,
@@ -127,13 +137,15 @@ class Discovery:
         host=None,
         on_peer_found=None,
         on_peer_lost=None,
+        name=None,
     ):
         """Store configuration. Does not touch the network. """
-        
+
         self.peer_id = peer_id
         self.public_key = public_key
         self.port = port
         self.host = host
+        self.name = name or peer_id
 
         self._on_peer_found = on_peer_found
         self._on_peer_lost = on_peer_lost
@@ -258,6 +270,7 @@ class Discovery:
         properties = {
             PEER_ID_KEY: self.peer_id,
             PUBLIC_KEY_KEY: self.public_key,
+            NAME_KEY: self.name,
         }
 
         return ServiceInfo(

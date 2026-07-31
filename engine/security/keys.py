@@ -17,32 +17,35 @@ import os
 from nacl.signing import SigningKey
 from nacl.public import PrivateKey
 
-SIGNING_KEY_PATH = "identity_signing.key"
-ENCRYPTION_KEY_PATH = "identity_encryption.key"
+# Keys live in LOCALLINK_KEYS_DIR when set (default: current directory).
+# .env ships with ".keys" so the repo root stays clean and the keys are
+# covered by the existing .gitignore entry for that directory.
+_KEYS_DIR = os.environ.get("LOCALLINK_KEYS_DIR", "").strip() or "."
+
+SIGNING_KEY_PATH = os.path.join(_KEYS_DIR, "identity_signing.key")
+ENCRYPTION_KEY_PATH = os.path.join(_KEYS_DIR, "identity_encryption.key")
+
+
+def _load_or_create(path: str, factory):
+    """Load a key from ``path`` if it exists, else generate + persist one."""
+    if os.path.exists(path):
+        with open(path, "rb") as f:
+            return factory(f.read())
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    key = factory.generate()
+    with open(path, "wb") as f:
+        f.write(bytes(key))
+    return key
 
 
 def load_or_create_signing_key() -> SigningKey:
     """Used to sign outbound messages (proves 'this really came from me')."""
-    if os.path.exists(SIGNING_KEY_PATH):
-        with open(SIGNING_KEY_PATH, "rb") as f:
-            return SigningKey(f.read())
-
-    key = SigningKey.generate()
-    with open(SIGNING_KEY_PATH, "wb") as f:
-        f.write(bytes(key))
-    return key
+    return _load_or_create(SIGNING_KEY_PATH, SigningKey)
 
 
 def load_or_create_encryption_key() -> PrivateKey:
     """Used to encrypt/decrypt message contents."""
-    if os.path.exists(ENCRYPTION_KEY_PATH):
-        with open(ENCRYPTION_KEY_PATH, "rb") as f:
-            return PrivateKey(f.read())
-
-    key = PrivateKey.generate()
-    with open(ENCRYPTION_KEY_PATH, "wb") as f:
-        f.write(bytes(key))
-    return key
+    return _load_or_create(ENCRYPTION_KEY_PATH, PrivateKey)
 
 
 if __name__ == "__main__":

@@ -211,6 +211,19 @@ def get_room(room_id: str) -> Optional[Room]:
         return None
 
 
+def get_room_by_name(name: str) -> Optional[Room]:
+    """Return the first room with this exact name, or None if not found.
+
+    Room names are not unique in the schema (a future migration could
+    enforce that with a UNIQUE index on ``name``), so this returns the
+    first match. For the current "default" + user-created rooms model
+    where one node owns each room, the first match is always the right
+    one. If two nodes both create a room called "general", each
+    instance's local DB will only see its own.
+    """
+    return Room.get_or_none(Room.name == name)
+
+
 def list_public_rooms() -> list[Room]:
     """Return all public rooms."""
     return list(Room.select().where(Room.is_public == True))
@@ -350,6 +363,11 @@ def list_joined_rooms(peer_id: str) -> list[Room]:
         .order_by(RoomMember.joined_at.desc())
     )
 
+def get_room_by_name(name: str) -> Room:
+    """Return room by name"""
+    room = Room.get_or_none(Room.name == name)        
+    return room
+    
 
 # Password helpers for private rooms
 
@@ -537,3 +555,4 @@ def delete_message(message_id: str) -> bool:
         .execute()
     )
     return deleted_count > 0
+

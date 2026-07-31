@@ -1,0 +1,6 @@
+peewee
+zeroconf
+requests
+textual
+pynacl
+flask
