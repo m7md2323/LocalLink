@@ -1,7 +1,9 @@
 # LocalLink
 <img width="1408" height="768" alt="image" src="https://github.com/user-attachments/assets/696889cb-674c-4860-b5ab-f1d6ccf86065" />
 
-*   **Note: ** This is still underdevelopment, where the design and technologies we are using might change. 
+**Note:** This is still underdevelopment, where the design and technologies we are using might change. 
+
+**Note regarding using AI:** about 70% of this project's code is AI generated, so it needs a lot of work to be polished and product ready.
 
 > **Status:** under active development. The local P2P engine, TUI, and room system are working today. **The Matrix bridge is not working yet** — there is code for it (`bridge/matrix_sync.py`) but it is not loaded by the entry point and has not been tested end-to-end. Local chat between laptops on the same WiFi works; pushing that history to Matrix when the internet returns does not.
 
@@ -16,6 +18,24 @@ Zero setup, zero dependencies. Just download and run!
 3. Enter your display name and start chatting!
 
 Works identically on **linux**, **macOS**, and **Windows**.
+
+### Building the executable from source
+
+If you prefer to build `LocalLink.exe` yourself:
+
+1. Clone the repository and install dependencies:
+   ```bash
+   pip install -e .
+   pip install pyinstaller
+   ```
+2. Run the build script:
+   ```bash
+   python build.py
+   ```
+3. The standalone executable lands at `dist/LocalLink.exe`.
+
+The build script uses `LocalLink.spec` as the single source of truth for
+PyInstaller configuration (hidden imports, data files, UPX settings, etc.).
 
 ### Hosting & deployment
 
@@ -82,34 +102,42 @@ Handles all user interaction, text rendering, and view state management. Because
 | **Data Persistence** | SQLite | Serverless, file-based database for complete local data ownership |
 | **Security Layer** | PyNaCl (libsodium) | Authenticated public-key cryptography for end-to-end security |
 
-## 📁 Repository Layout (Initial)
+## 📁 Repository Layout
 
 ```text
 /LocalLink
 ├── engine/                     # Standalone headless core backend
+│   ├── api.py                  # Public API facade consumed by UI layers
+│   ├── bootstrap.py            # Startup orchestrator (peer, mesh, Flask, bridge)
 │   ├── mesh/                   # P2P discovery & local network routing
 │   │   ├── discovery.py        # mDNS broadcasting & listener loops
 │   │   └── server.py           # Flask instance handling P2P traffic
 │   ├── network/
 │   │   └── client.py           # Outbound HTTP POST payload dispatchers
 │   ├── storage/
+│   │   ├── connection.py       # SQLite connection pool & thread-safe helpers
 │   │   ├── database.py         # Transaction handlers & query abstractions
 │   │   └── models.py           # Messaging schema & sync state flags
 │   └── security/
 │       ├── crypto.py           # PyNaCl end-to-end encryption routines
 │       └── keys.py             # Public/private keypair lifecycle tools
 ├── bridge/                     # Asynchronous Matrix integration layer
-│   ├── matrix_sync.py          # Queue monitoring & synchronization worker
-│   └── config.json             # Matrix credentials, targets & credentials
-├── cli/                        # Rich Terminal User Interface (TUI)
-│   ├── components/             # Modular TUI layout widgets (Chat boxes, sidebars)
-│   ├── views/                  # Screen managers (Onboarding, chat viewports)
-│   └── main.py                 # Interface runtime script
-├── web/                        # Embedded Web Interface Demo
-│   ├── static/                 # Front-end asset pipelines (CSS/JS modules)
-│   └── server.py               # Flask pipeline presenting the browser UI
+│   └── matrix_sync.py          # Queue monitoring & synchronization worker
+├── cli/                        # Textual Terminal User Interface (TUI)
+│   └── main.py                 # Interactive TUI (rooms, peers, chat, commands)
+├── docs/
+│   └── index.html              # Project landing page (served via GitHub Pages)
+├── tests/
+│   ├── test_e2e_two_peers.py   # End-to-end mesh integration tests
+│   ├── test_models.py          # Storage schema unit tests
+│   └── test_matrix_sync.py     # Bridge layer unit tests
+├── .github/workflows/          # CI (tests) & CD (docs → GitHub Pages)
+├── LocalLink.spec              # PyInstaller spec (single source of truth for .exe)
+├── build.py                    # Build script: runs PyInstaller, outputs dist/LocalLink.exe
+├── run.py                      # Master execution entrypoint
 ├── requirements.txt            # Dependency listings
-└── run.py                      # Master execution entrypoint
+├── pyproject.toml              # Package metadata & build config
+└──.env.example                # Template for local configuration
 ```
 
 ## 📊 Development Status & Progress Tracker
@@ -134,7 +162,8 @@ Handles all user interaction, text rendering, and view state management. Because
 - [ ] **Matrix Room Federation**: Connect local rooms to Matrix rooms via Matrix REST client APIs.
 
 ### 🟠 Phase 4: Verification & Hardware Exploration [In Progress]
+- [x] **Test on two devices**: See if the project work on two devices.
 - [ ] **Full scanning of bugs, and Documentation web page**:
-- [ ] **Make the tool executable by one command**:
+- [x] **Make the tool executable by one command**:
 - [ ] **Multi-Node Mesh Testing**: End-to-end simulation of local P2P mesh offline messaging.
 - [ ] **NAT/Firewall Resilience**: Verify peer discovery and packet relay across restricted NATs.
