@@ -61,11 +61,6 @@ logger = logging.getLogger(__name__)
 
 CONNECTIVITY_PROBE_TIMEOUT_SECONDS = 3
 
-# Deterministic color palette for sender names, chosen by hashing the
-# sender's peer_id so the same peer always renders in the same color.
-_SENDER_COLORS = ["cyan", "green", "magenta", "yellow", "blue", "red"]
-_SELF_COLOR = "bright_cyan"
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -81,20 +76,15 @@ def _has_internet() -> bool:
         return False
 
 
-def _sender_color(sender_id: str, self_peer_id: str) -> str:
-    if sender_id == self_peer_id:
-        return _SELF_COLOR
-    return _SENDER_COLORS[hash(sender_id) % len(_SENDER_COLORS)]
-
-
 def _format_message(msg: Message, peer_names: dict, self_peer_id: str) -> str:
-    """Render one message line with Rich markup for the RichLog."""
+    """Render one message line as plain text. No markup, no colors —
+    classic green-on-black terminal aesthetic.
+    """
     sender = peer_names.get(msg.sender_id) or msg.sender_id[:8]
     if msg.sender_id == self_peer_id:
         sender = "you"
-    color = _sender_color(msg.sender_id, self_peer_id)
     ts = time.strftime("%H:%M", time.localtime(msg.timestamp))
-    return f"[dim]{ts}[/dim] [{color}][b]{sender}[/b][/{color}]  {msg.content}"
+    return f"{ts}  {sender}  {msg.content}"
 
 
 # ---------------------------------------------------------------------------
@@ -115,20 +105,23 @@ class NewRoomModal(ModalScreen[Optional[dict]]):
     DEFAULT_CSS = """
     NewRoomModal {
         align: center middle;
+        background: black;
     }
     #new-room-dialog {
         width: 52;
         height: auto;
-        border: round $primary;
-        background: $panel;
+        border: round green;
+        background: black;
+        color: green;
         padding: 1 2;
     }
     #new-room-dialog .title {
         text-style: bold;
-        color: $accent;
+        color: green;
     }
     #new-room-dialog Label {
         margin-top: 1;
+        color: green;
     }
     #row-private {
         height: auto;
@@ -137,6 +130,7 @@ class NewRoomModal(ModalScreen[Optional[dict]]):
     #row-private Static {
         margin-right: 1;
         margin-top: 1;
+        color: green;
     }
     #password-block {
         display: none;
@@ -151,6 +145,9 @@ class NewRoomModal(ModalScreen[Optional[dict]]):
     }
     #modal-buttons Button {
         margin-left: 1;
+        background: black;
+        color: green;
+        border: solid green;
     }
     """
 
@@ -215,41 +212,60 @@ class LocalLinkApp(App):
 
     CSS = """
     Screen {
-        layout: vertical;
+        background: black;
+        color: green;
     }
     #main-area {
         height: 1fr;
     }
     #sidebar {
         width: 26;
-        border-right: solid $primary;
+        background: black;
+        color: green;
+        border-right: solid green;
         padding: 0 1;
     }
-    #sidebar > Static.section-title {
-        color: $accent;
-        text-style: bold;
-        margin-top: 1;
-    }
-    #sidebar > Static.hint {
-        color: $text-muted;
+    #sidebar > Static {
+        color: green;
     }
     #chat-area {
+        background: black;
+        color: green;
         padding: 0 1;
     }
     #chat-title {
-        color: $accent;
+        color: green;
         text-style: bold;
         margin-bottom: 1;
     }
     #message-log {
         height: 1fr;
+        background: black;
+        color: green;
         border: none;
-        background: $surface;
         padding: 0 1;
     }
     #input-box {
         height: 3;
-        border: solid $primary;
+        background: black;
+        color: green;
+        border: solid green;
+    }
+    ListView {
+        background: black;
+        color: green;
+    }
+    ListView > ListItem {
+        background: black;
+        color: green;
+    }
+    Header {
+        background: black;
+        color: green;
+    }
+    Footer {
+        background: black;
+        color: green;
     }
     """
 
@@ -288,7 +304,7 @@ class LocalLinkApp(App):
                 yield ListView(id="peer-list")
             with Vertical(id="chat-area"):
                 yield Static("Select a room", id="chat-title")
-                yield RichLog(id="message-log", markup=True, auto_scroll=True, wrap=True)
+                yield RichLog(id="message-log", markup=False, auto_scroll=True, wrap=True)
                 yield Input(id="input-box", placeholder="Type a message and press Enter…")
         yield Footer()
 
@@ -316,8 +332,8 @@ class LocalLinkApp(App):
         lv = self.query_one("#room-list", ListView)
         lv.clear()
         for room in rooms:
-            marker = "[b]●[/b] " if room.name == "default" else "   "
-            lock = " [dim](private)[/dim]" if not room.is_public else ""
+            marker = "> " if room.name == "default" else "  "
+            lock = " (private)" if not room.is_public else ""
             lv.append(ListItem(Static(f"{marker}{room.name}{lock}")))
         if not rooms:
             return
@@ -341,11 +357,11 @@ class LocalLinkApp(App):
         lv.clear()
         for p in peers:
             if p.peer_id == self.self_peer_id:
-                label = "[b cyan]● you[/b cyan]"
+                label = "> you"
             else:
-                dot = "[green]●[/green]" if p.is_online else "[dim]○[/dim]"
                 name = p.name or p.peer_id[:8]
-                label = f"{dot} {name}"
+                status = "online" if p.is_online else "offline"
+                label = f"  {name} ({status})"
             lv.append(ListItem(Static(label)))
 
     def _refresh_rooms_and_peers(self) -> None:
@@ -395,8 +411,8 @@ class LocalLinkApp(App):
         self.is_online = online
         peer_count = len(api.list_online_peers())
         room_count = len(self._rooms_cache)
-        status = "[green]ONLINE[/green]" if online else "[red]OFFLINE[/red]"
-        self.sub_title = f"{peer_count} peer(s) · {room_count} room(s) · {status}"
+        status = "ONLINE" if online else "OFFLINE"
+        self.sub_title = f"{peer_count} peers · {room_count} rooms · {status}"
 
     # ---- Selection handling ----------------------------------------------
 

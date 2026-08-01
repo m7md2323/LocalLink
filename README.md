@@ -3,20 +3,39 @@
 
 *   **Note: ** This is still underdevelopment, where the design and technologies we are using might change. 
 
+> **Status:** under active development. The local P2P engine, TUI, and room system are working today. **The Matrix bridge is not working yet** — there is code for it (`bridge/matrix_sync.py`) but it is not loaded by the entry point and has not been tested end-to-end. Local chat between laptops on the same WiFi works; pushing that history to Matrix when the internet returns does not.
+
 An offline-first, decentralized P2P messaging engine featuring automated, asynchronous syncing to the federated Matrix network.
 
 ## 🚀 Quick start
 
-Install in one line (requires Python 3.10+):
+One command, three platforms. If you have Python 3.10+ and pip, you're done.
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/anomalyco/LocalLink/main/install.sh | bash
+pip install git+https://github.com/m7md2323/LinkLocal.git
+locallink
 ```
 
-Then run:
+Works identically on **linux**, **macOS**, and **Windows**.
+
+**For contributors:**
 
 ```bash
-locallink
+git clone https://github.com/m7md2323/LinkLocal.git
+cd LocalLink
+python3 -m venv venv && source venv/bin/activate   # or: python -m venv venv (Windows)
+pip install -r requirements.txt
+python run.py
+```
+
+**Alternative installers** (for system-wide installs without a venv):
+
+```bash
+# linux / macOS
+curl -sSL https://raw.githubusercontent.com/m7md2323/LinkLocal/main/install.sh | bash
+
+# windows (PowerShell)
+irm https://raw.githubusercontent.com/m7md2323/LinkLocal/main/install.ps1 | iex
 ```
 
 For detailed docs, commands, and configuration options, see the
@@ -39,7 +58,7 @@ To publish your own copy:
 To use a custom domain (e.g. `locallink.dev`), drop a `CNAME` file
 into `docs/` containing the bare domain name.
 
-To point the one-liner installer at your fork, set in `install.sh`:
+To point the installer at your fork, edit the top of `install.sh`:
 
 ```bash
 DEFAULT_REPO="https://github.com/<your-username>/LocalLink.git"
