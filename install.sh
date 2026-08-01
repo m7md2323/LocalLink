@@ -22,8 +22,8 @@ DEFAULT_INSTALL_DIR="${HOME}/.locallink"
 DEFAULT_BIN_DIR="${HOME}/.local/bin"
 
 # Repository to clone. Override with LOCAL_LINK_REPO env var.
-# Default points to the official LocalLink repo on GitHub.
-DEFAULT_REPO="https://github.com/anomalyco/LocalLink.git"
+# Default points to the official LinkLocal repo on GitHub.
+DEFAULT_REPO="https://github.com/m7md2323/LinkLocal.git"
 REPO="${LOCAL_LINK_REPO:-$DEFAULT_REPO}"
 BRANCH="${LOCAL_LINK_BRANCH:-main}"
 INSTALL_DIR="${LOCAL_LINK_INSTALL_DIR:-$DEFAULT_INSTALL_DIR}"
@@ -32,7 +32,7 @@ BIN_DIR="${LOCAL_LINK_BIN_DIR:-$DEFAULT_BIN_DIR}"
 # Helper: resolve a raw install.sh URL for self-referencing in the
 # docs page and README. Override with LOCAL_LINK_RAW_URL if you fork
 # the repo or mirror it elsewhere.
-RAW_URL_DEFAULT="https://raw.githubusercontent.com/anomalyco/LocalLink/main/install.sh"
+RAW_URL_DEFAULT="https://raw.githubusercontent.com/m7md2323/LinkLocal/main/install.sh"
 RAW_URL="${LOCAL_LINK_RAW_URL:-$RAW_URL_DEFAULT}"
 
 # ---------------------------------------------------------------------------

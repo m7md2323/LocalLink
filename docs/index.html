@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="LocalLink — offline-first, decentralized P2P messaging. Chat when the internet doesn't.">
+  <title>LocalLink // offline-first P2P</title>
+  <style>
+    :root {
+      --bg:        #0a0e0a;       /* near-black with green tint */
+      --bg-panel:  #0f1410;
+      --fg:        #c8d3c8;       /* soft off-white */
+      --fg-dim:    #7a8a7a;
+      --accent:    #66ff66;       /* phosphor green */
+      --accent-2:  #ffcc66;       /* amber */
+      --warn:      #ff6666;       /* red, but not jarring */
+      --border:    #2a3a2a;
+      --border-2:  #1a241a;
+      --selection: #1f3a1f;
+
+      --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      font-family: var(--mono);
+      font-size: 15px;
+      line-height: 1.55;
+      background: var(--bg);
+      color: var(--fg);
+      /* CRT scanlines — extremely subtle */
+      background-image: repeating-linear-gradient(
+        to bottom,
+        rgba(0,0,0,0) 0,
+        rgba(0,0,0,0) 2px,
+        rgba(0,255,0,0.012) 2px,
+        rgba(0,255,0,0.012) 3px
+      );
+    }
+
+    ::selection { background: var(--selection); color: var(--accent); }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+      border-bottom: 1px dotted var(--accent);
+    }
+    a:hover { color: var(--accent-2); border-bottom-color: var(--accent-2); }
+
+    code {
+      font-family: var(--mono);
+      background: var(--bg-panel);
+      padding: 0.05em 0.35em;
+      border: 1px solid var(--border-2);
+      color: var(--accent-2);
+      font-size: 0.92em;
+    }
+
+    /* ----- Layout ----- */
+
+    .wrap { max-width: 900px; margin: 0 auto; padding: 0 1.5rem; }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 0;
+      margin-bottom: 3rem;
+    }
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 1.1rem;
+      letter-spacing: 0.04em;
+    }
+    .brand::before { content: "> "; color: var(--fg-dim); }
+    nav { font-size: 0.9rem; }
+    nav a {
+      margin-left: 1.25rem;
+      color: var(--fg-dim);
+      border-bottom: none;
+    }
+    nav a:hover { color: var(--accent); }
+
+    /* ----- Hero ----- */
+
+    .hero { padding: 2.5rem 0 3rem; border-bottom: 1px solid var(--border-2); margin-bottom: 3rem; }
+    .hero h1 {
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      line-height: 1.25;
+      margin: 0 0 1rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .hero h1 .prompt { color: var(--accent); }
+    .hero h1 .blink {
+      display: inline-block;
+      width: 0.55em;
+      height: 1em;
+      background: var(--accent);
+      vertical-align: -0.12em;
+      margin-left: 0.15em;
+      animation: blink 1.05s steps(1) infinite;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    .hero p.lede {
+      color: var(--fg-dim);
+      font-size: 1.05rem;
+      max-width: 640px;
+      margin: 0 0 1.5rem;
+    }
+    .hero p.lede::before { content: "## "; color: var(--fg-dim); }
+
+    .install {
+      border: 1px solid var(--border);
+      background: var(--bg-panel);
+      padding: 1rem 1.25rem;
+      margin: 1.5rem 0;
+      position: relative;
+    }
+    .install::before {
+      content: "$ install";
+      display: block;
+      color: var(--fg-dim);
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+    }
+    .install code {
+      display: block;
+      background: transparent;
+      border: none;
+      padding: 0;
+      color: var(--accent);
+      font-size: 0.95rem;
+      word-break: break-all;
+    }
+    .install .alt {
+      color: var(--fg-dim);
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+    }
+    .install .alt::before { content: "# "; }
+
+    /* ----- Sections ----- */
+
+    section { margin-bottom: 3.5rem; }
+    section h2 {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin: 0 0 1.25rem;
+      color: var(--accent);
+      letter-spacing: 0.02em;
+    }
+    section h2::before { content: "## "; color: var(--fg-dim); }
+    section h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 1.5rem 0 0.6rem;
+      color: var(--accent-2);
+    }
+    section h3::before { content: "### "; color: var(--fg-dim); }
+
+    /* ----- Status banner ----- */
+
+    .banner {
+      border: 1px solid var(--accent-2);
+      background: rgba(255, 204, 102, 0.05);
+      padding: 0.9rem 1.1rem;
+      margin-bottom: 2.5rem;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+    .banner .tag {
+      display: inline-block;
+      color: var(--bg);
+      background: var(--accent-2);
+      padding: 0.05em 0.5em;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      margin-right: 0.6rem;
+      vertical-align: 0.1em;
+    }
+    .banner p { margin: 0 0 0.4rem; }
+    .banner p:last-child { margin-bottom: 0; }
+    .banner code { background: transparent; border: none; padding: 0; color: var(--accent-2); }
+
+    .bridge-status {
+      border: 1px solid var(--warn);
+      background: rgba(255, 102, 102, 0.04);
+      padding: 0.9rem 1.1rem;
+      margin: 1rem 0 1.5rem;
+      font-size: 0.9rem;
+    }
+    .bridge-status .tag {
+      display: inline-block;
+      color: var(--bg);
+      background: var(--warn);
+      padding: 0.05em 0.5em;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      margin-right: 0.6rem;
+    }
+    .bridge-status p { margin: 0 0 0.4rem; }
+    .bridge-status p:last-child { margin-bottom: 0; }
+
+    p { margin: 0 0 0.9rem; }
+    ul, ol { padding-left: 1.4rem; margin: 0 0 0.9rem; }
+    li { margin-bottom: 0.3rem; }
+
+    /* ----- Tiles (feature cards) ----- */
+
+    .tiles {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+    }
+    .tile {
+      border: 1px solid var(--border);
+      padding: 1rem 1.1rem;
+      background: var(--bg-panel);
+    }
+    .tile h3 { margin-top: 0; }
+    .tile h3::before { content: "> "; color: var(--accent); }
+    .tile p { font-size: 0.92rem; color: var(--fg-dim); margin: 0; }
+    .tile .glyph { color: var(--accent); font-weight: 700; margin-right: 0.4rem; }
+
+    /* ----- Terminal demo ----- */
+
+    .term {
+      border: 1px solid var(--border);
+      background: #050805;
+      padding: 1rem 1.25rem;
+      font-size: 0.88rem;
+      line-height: 1.6;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .term .p { color: var(--accent); }
+    .term .t { color: var(--fg); }
+    .term .d { color: var(--fg-dim); }
+    .term .a { color: var(--accent-2); }
+    .term .w { color: var(--warn); }
+    .term .ok { color: var(--accent); }
+
+    /* ----- Tables ----- */
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 0.55rem 0.7rem;
+      border-bottom: 1px solid var(--border-2);
+    }
+    th {
+      color: var(--fg-dim);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--border);
+    }
+    td:first-child { color: var(--accent-2); white-space: nowrap; }
+
+    /* ----- ASCII art divider ----- */
+
+    hr.rule {
+      border: 0;
+      text-align: center;
+      margin: 2.5rem 0;
+      color: var(--border);
+    }
+    hr.rule::before { content: "// // //"; letter-spacing: 0.4em; }
+
+    /* ----- Footer ----- */
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem 0;
+      margin-top: 4rem;
+      color: var(--fg-dim);
+      font-size: 0.85rem;
+      text-align: center;
+    }
+    footer::before { content: "[ EOF ]"; display: block; color: var(--accent); margin-bottom: 0.5rem; }
+
+    @media (max-width: 600px) {
+      .header-inner { flex-direction: column; align-items: flex-start; }
+      nav a { margin-left: 0; margin-right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="wrap">
+
+    <header>
+      <div class="header-inner">
+        <span class="brand">LocalLink</span>
+        <nav>
+          <a href="#about">about</a>
+          <a href="#install">install</a>
+          <a href="#use">use</a>
+          <a href="#commands">cmds</a>
+          <a href="#arch">arch</a>
+          <a href="https://github.com/m7md2323/LinkLocal">src</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="banner">
+      <p><span class="tag">WIP</span> LocalLink is under active development. the local P2P engine, the TUI, and the room system are working today. expect sharp edges, missing polish, and breaking changes between commits.</p>
+      <p>see <a href="#status">project status</a> below for what's done, what's stubbed, and what's coming next.</p>
+    </div>
+
+    <section class="hero">
+      <h1><span class="prompt">$</span> chat even when the internet is dead<span class="blink"></span></h1>
+      <p class="lede">
+        offline-first, decentralized P2P messaging with async sync to the
+        federated Matrix network. zero accounts. zero servers. zero trust.
+      </p>
+
+      <div class="install">
+        <code>pip install git+https://github.com/m7md2323/LinkLocal.git</code>
+        <div class="alt">works on linux, macOS, and windows · requires python 3.10+</div>
+      </div>
+
+      <div class="term" aria-label="terminal preview">[<span class="p">locallink</span> ~]$ <span class="t">locallink</span>
+<span class="d">[21:04:18]</span> <span class="a">peer ready</span>: id=node_local_01 name=Local User
+<span class="d">[21:04:19]</span> <span class="a">discovery</span>: announcing on _locallink._tcp.local.:5000
+<span class="d">[21:04:19]</span> <span class="a">listener</span>: http://0.0.0.0:5000
+<span class="d">[21:04:20]</span> <span class="a">peer found</span>: alice @ 192.168.1.5:5000
+<span class="d">[21:04:22]</span> <span class="ok">offline-first ready</span>
+
+<span class="p"># general</span>                                       2 peers · ONLINE
+─────────────────────────────────────────────────────────────
+<span class="d">10:32</span>  <span class="a">alice</span>  hey, you around?
+<span class="d">10:33</span>  <span class="a">you</span>    yeah, what's up?
+<span class="d">10:34</span>  <span class="a">alice</span>  wifi's flaky today
+<span class="d">10:35</span>  <span class="a">you</span>    np, queue is local. matrix bridge will catch up.
+
+<span class="p">&gt;</span> <span class="t">_</span></div>
+    </section>
+
+    <section id="about">
+      <h2>what it is</h2>
+      <p>
+        LinkLocal is a peer-to-peer messenger that runs over your local
+        WiFi. no internet, no problem — every node keeps a local ledger,
+        and the moment <em>any</em> device on the mesh comes back online,
+        the queued history is pushed to a federated Matrix room.
+      </p>
+      <p>
+        think IRC, but the rooms are local, the keys are local, and the
+        whole thing is end-to-end encrypted.
+      </p>
+    </section>
+
+    <section id="status">
+      <h2>project status</h2>
+
+      <div class="bridge-status">
+        <p><span class="tag">NOT WORKING</span> the Matrix bridge is not active. there is code for it (<code>bridge/matrix_sync.py</code>) but it is not loaded by the entry point and has not been tested end-to-end against a real homeserver. do not configure <code>MATRIX_*</code> env vars and expect messages to leave your machine yet.</p>
+        <p>in plain terms: local chat between laptops on the same WiFi works. pushing that history to Matrix when the internet comes back does not. it is the next big thing to wire up.</p>
+      </div>
+
+      <p>the matrix bridge is not working yet. the rest of the project is.</p>
+
+      <h3>what works today</h3>
+      <ul>
+        <li>local P2P chat over WiFi via mDNS auto-discovery</li>
+        <li>end-to-end encrypted messages (PyNaCl, sign-then-encrypt)</li>
+        <li>multi-room (public + password-protected)</li>
+        <li>terminal UI with rooms, peers, and live chat</li>
+        <li>offline-first: messages typed without internet are saved locally and shown in your history immediately</li>
+        <li>one-liner install + <code>locallink</code> launcher</li>
+      </ul>
+
+      <h3>what is stubbed or unfinished</h3>
+      <ul>
+        <li>Matrix bridge (code exists, not wired in, untested)</li>
+        <li>no message redelivery to peers that came back online (local peer re-join does not replay missed history)</li>
+        <li>no per-room topic / member list / role UI in the TUI</li>
+        <li>no file or image transfer</li>
+        <li>no web UI (TUI only)</li>
+      </ul>
+
+      <h3>known sharp edges</h3>
+      <ul>
+        <li>mDNS does not work on networks with AP isolation enabled (cafes, some corporate WiFi)</li>
+        <li>only one process per port — two <code>locallink</code> instances on the same machine need different <code>LOCALLINK_PORT</code></li>
+        <li>peer identity is per-folder; moving <code>locallink.db</code> to a new machine is a new identity</li>
+        <li>the bridge may be deleted on package install if its folder is not listed in <code>pyproject.toml</code> (already wired in, just noting)</li>
+      </ul>
+    </section>
+
+    <section id="install">
+      <h2>install</h2>
+
+      <p>one command, three platforms. if you have python 3.10+ and pip, you're done.</p>
+
+      <div class="install">
+        <code>pip install git+https://github.com/m7md2323/LinkLocal.git</code>
+        <div class="alt">linux · macOS · windows — same command everywhere</div>
+      </div>
+
+      <p>then run:</p>
+      <div class="install">
+        <code>locallink</code>
+      </div>
+
+      <h3>if you don't have pip</h3>
+      <p>it comes with python. on most linux distros: <code>sudo apt install python3-pip</code> (debian/ubuntu) or <code>sudo dnf install python3-pip</code> (fedora). on macOS: <code>brew install python</code> or download from <a href="https://python.org">python.org</a> (tick "Add to PATH"). on Windows: download from <a href="https://python.org">python.org</a> and tick "Add Python to PATH" in the installer.</p>
+
+      <h3>for contributors</h3>
+      <div class="install">
+        <code>git clone https://github.com/m7md2323/LinkLocal.git
+cd LinkLocal
+python3 -m venv venv && source venv/bin/activate   # or: python -m venv venv (Windows)
+pip install -r requirements.txt
+python run.py</code>
+      </div>
+
+      <h3>alternative installers (for system-wide installs)</h3>
+      <p>if you need <code>locallink</code> on your PATH without activating a venv, these do the same thing as pip but create a dedicated venv in your home dir:</p>
+      <div class="install">
+        <code># linux / macOS
+curl -sSL https://raw.githubusercontent.com/m7md2323/LinkLocal/main/install.sh | bash
+
+# windows (PowerShell)
+irm https://raw.githubusercontent.com/m7md2323/LinkLocal/main/install.ps1 | iex</code>
+      </div>
+
+      <h3>requirements</h3>
+      <ul>
+        <li>python 3.10+</li>
+        <li>linux, macOS, or Windows 10+</li>
+        <li>same LAN for mesh discovery</li>
+      </ul>
+    </section>
+
+    <section id="use">
+      <h2>quick start</h2>
+      <ol>
+        <li>install (above)</li>
+        <li>run <code>locallink</code></li>
+        <li>type into the bottom bar. default room is ready.</li>
+        <li>other laptops on the same WiFi auto-appear in the peer list.</li>
+        <li><code>Ctrl+N</code> new room, <code>/j &lt;room_id&gt;</code> join remote, <code>/leave</code> exit one.</li>
+      </ol>
+      <p>
+        offline? everything you type is saved to your local sqlite ledger
+        immediately. when you (or any peer) reconnects, the bridge flushes
+        the queue to Matrix.
+      </p>
+    </section>
+
+    <section id="commands">
+      <h2>commands</h2>
+      <table>
+        <thead>
+          <tr><th>key / cmd</th><th>action</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Ctrl+N</td><td>new room</td></tr>
+          <tr><td>F1</td><td>help</td></tr>
+          <tr><td>Ctrl+C</td><td>quit</td></tr>
+          <tr><td>/j &lt;room_id&gt; [pw]</td><td>join a remote room</td></tr>
+          <tr><td>/leave</td><td>leave current room (default is protected)</td></tr>
+          <tr><td>/help</td><td>list all commands</td></tr>
+          <tr><td>/q</td><td>quit</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="arch">
+      <h2>architecture</h2>
+      <p>four layers. each one is a single python file you can read in 5 minutes.</p>
+
+      <div class="tiles">
+        <div class="tile">
+          <h3><span class="glyph">[01]</span> mesh</h3>
+          <p>mDNS discovery + Flask HTTP listener. peers auto-find each other on the LAN. every inbound message is verified and decrypted before it lands in storage.</p>
+        </div>
+        <div class="tile">
+          <h3><span class="glyph">[02]</span> storage</h3>
+          <p>SQLite + Peewee. four tables: peers, rooms, memberships, messages. one boolean per message: <code>is_synced</code>. that's the whole offline-first contract.</p>
+        </div>
+        <div class="tile">
+          <h3><span class="glyph">[03]</span> security</h3>
+          <p>PyNaCl. each device has one signing key (Ed25519) and one box key (X25519). private keys never leave the disk they're generated on.</p>
+        </div>
+        <div class="tile">
+          <h3><span class="glyph">[04]</span> bridge</h3>
+          <p>background worker. polls the unsynced queue, pushes to a Matrix room via REST. restarts are safe; in-flight events are keyed by the local message id.</p>
+        </div>
+        <div class="tile">
+          <h3><span class="glyph">[05]</span> ui</h3>
+          <p>Textual TUI. 3-pane: rooms, peers, chat. RichLog for scrolling messages, worker-thread internet probe, keyboard-first everything.</p>
+        </div>
+        <div class="tile">
+          <h3><span class="glyph">[06]</span> cli</h3>
+          <p>one entry point (<code>run.py</code>). loads <code>.env</code>, bootstraps the self peer, starts everything in the right order, hands the terminal to the TUI.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="config">
+      <h2>configuration</h2>
+      <p>copy the example and edit. nothing is required to start.</p>
+      <div class="install">
+        <code>cp .env.example .env
+nano .env</code>
+      </div>
+      <p>common knobs:</p>
+      <ul>
+        <li><code>LOCALLINK_NODE_ID</code> — stable peer identity (otherwise a fresh UUID per launch)</li>
+        <li><code>LOCALLINK_DISPLAY_NAME</code> — your name in the peer list</li>
+        <li><code>LOCALLINK_PORT</code> — local HTTP port (default 5000)</li>
+        <li><code>MATRIX_ACCESS_TOKEN</code> — only needed if you wire up the bridge</li>
+      </ul>
+    </section>
+
+  </div>
+
+  <footer>
+    <div class="wrap">
+      LocalLink · made for when the network isn't.
+    </div>
+  </footer>
+
+</body>
+</html>
