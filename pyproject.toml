@@ -40,7 +40,7 @@ dev = [
 ]
 
 [project.scripts]
-locallink = "run:main"
+locallink = "engine.bootstrap:run"
 
 [project.urls]
 Homepage = "https://m7md2323.github.io/LinkLocal"
