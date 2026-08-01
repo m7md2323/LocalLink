@@ -123,6 +123,38 @@ def get_peer(peer_id: str) -> Optional[Peer]:
         return None
 
 
+def get_peer_by_public_key(public_key: str) -> Optional[Peer]:
+    """Look up a peer by its encryption public key.
+
+    Used by the discovery layer to collapse duplicate mDNS
+    announcements: when the same physical machine advertises itself
+    under two different peer_ids (e.g. a previous run with a different
+    keypair), the public key lets us recognise it as the same node.
+    """
+    if not public_key:
+        return None
+    return Peer.get_or_none(Peer.public_key == public_key)
+
+
+def prune_stale_peers(max_age_seconds: float = 90.0) -> int:
+    """Mark peers offline if their ``last_active`` is older than the
+    threshold. Compensates for mDNS's lazy ``remove_service``
+    notifications — a peer that crashed might not generate a "lost"
+    event for 1+ minute, so we proactively flip the flag here.
+
+    Returns the number of peers that were marked offline.
+    """
+    cutoff = time.time() - max_age_seconds
+    updated = (
+        Peer.update(is_online=False)
+        .where(
+            (Peer.is_online == True) & (Peer.last_active < cutoff)
+        )
+        .execute()
+    )
+    return updated
+
+
 def list_peers(online_only: bool = False) -> list[Peer]:
     """Return all peers, or only online peers if `online_only=True`."""
     query = Peer.select()
@@ -363,11 +395,6 @@ def list_joined_rooms(peer_id: str) -> list[Room]:
         .order_by(RoomMember.joined_at.desc())
     )
 
-def get_room_by_name(name: str) -> Room:
-    """Return room by name"""
-    room = Room.get_or_none(Room.name == name)        
-    return room
-    
 
 # Password helpers for private rooms
 

@@ -9,37 +9,13 @@ An offline-first, decentralized P2P messaging engine featuring automated, asynch
 
 ## 🚀 Quick start
 
-One command, three platforms. If you have Python 3.10+ and pip, you're done.
+Zero setup, zero dependencies. Just download and run!
 
-```bash
-pip install git+https://github.com/m7md2323/LinkLocal.git
-locallink
-```
+1. Download the standalone executable (`locallink.exe`) from the latest release.
+2. Double-click the file to launch the terminal interface.
+3. Enter your display name and start chatting!
 
 Works identically on **linux**, **macOS**, and **Windows**.
-
-**For contributors:**
-
-```bash
-git clone https://github.com/m7md2323/LinkLocal.git
-cd LocalLink
-python3 -m venv venv && source venv/bin/activate   # or: python -m venv venv (Windows)
-pip install -r requirements.txt
-python run.py
-```
-
-**Alternative installers** (for system-wide installs without a venv):
-
-```bash
-# linux / macOS
-curl -sSL https://raw.githubusercontent.com/m7md2323/LinkLocal/main/install.sh | bash
-
-# windows (PowerShell)
-irm https://raw.githubusercontent.com/m7md2323/LinkLocal/main/install.ps1 | iex
-```
-
-For detailed docs, commands, and configuration options, see the
-**[documentation page](docs/index.html)** or run `cp .env.example .env` and edit the file.
 
 ### Hosting & deployment
 
@@ -58,12 +34,7 @@ To publish your own copy:
 To use a custom domain (e.g. `locallink.dev`), drop a `CNAME` file
 into `docs/` containing the bare domain name.
 
-To point the installer at your fork, edit the top of `install.sh`:
 
-```bash
-DEFAULT_REPO="https://github.com/<your-username>/LocalLink.git"
-RAW_URL_DEFAULT="https://raw.githubusercontent.com/<your-username>/LocalLink/main/install.sh"
-```
 
 ## 📌 Overview
 

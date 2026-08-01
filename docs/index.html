@@ -423,6 +423,25 @@
         <code>locallink</code>
       </div>
 
+      <h3>if "locallink" is not recognized</h3>
+      <p>the command is installed but your shell can't find it. two quick fixes:</p>
+      <p><b>windows (PowerShell):</b> <code>pip install --user</code> (the default when system python isn't writeable) drops scripts in <code>%APPDATA%\Python\Python3XX\Scripts\</code> which isn't on <code>$PATH</code>. either add it permanently, or just use <code>python -m locallink</code> instead:</p>
+      <div class="install">
+        <code># one-time fix for this terminal:
+$env:PATH = "$env:APPDATA\Python\Python313\Scripts;$env:PATH"
+
+# permanent fix (current user):
+[Environment]::SetEnvironmentVariable('Path', "$env:APPDATA\Python\Python313\Scripts;$([Environment]::GetEnvironmentVariable('Path','User'))", 'User')
+
+# or skip the PATH problem entirely:
+python -m locallink</code>
+      </div>
+      <p><b>linux/macOS:</b> pip installs to <code>~/.local/bin/</code>. add it to PATH:</p>
+      <div class="install">
+        <code>export PATH="$HOME/.local/bin:$PATH"   # add to ~/.bashrc or ~/.zshrc to persist
+locallink</code>
+      </div>
+
       <h3>if you don't have pip</h3>
       <p>it comes with python. on most linux distros: <code>sudo apt install python3-pip</code> (debian/ubuntu) or <code>sudo dnf install python3-pip</code> (fedora). on macOS: <code>brew install python</code> or download from <a href="https://python.org">python.org</a> (tick "Add to PATH"). on Windows: download from <a href="https://python.org">python.org</a> and tick "Add Python to PATH" in the installer.</p>
 

@@ -13,7 +13,6 @@ DEFAULT_PORT = 5000
 PEER_ID_KEY = "peer_id"
 PUBLIC_KEY_KEY = "pubkey"
 NAME_KEY = "name"
-IP_DISCOVERY_TARGET = "8.8.8.8"
 
 logger = logging.getLogger(__name__)
 
@@ -238,18 +237,42 @@ class Discovery:
         self._running = False
 
     def _get_local_ip(self):
-        """Discover this machine's local IP using the UDP socket trick."""
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        try:
-            sock.connect((IP_DISCOVERY_TARGET, 80))
-            ip = sock.getsockname()[0]
-            return ip
-        except OSError:
+        """Discover this machine's LAN IP.
 
-            logger.warning("Could not determine local IP, falling back to 127.0.0.1")
-            return "127.0.0.1"
-        finally:
-            sock.close()
+        Mirrors ``engine.bootstrap._get_local_ip`` — try public DNS
+        first, then common LAN gateways, then hostname lookup. UDP
+        "connect" is local-only so the targets don't have to be
+        reachable. Falls back to 127.0.0.1 only as a last resort.
+        """
+        targets = (
+            "8.8.8.8", "1.1.1.1", "208.67.222.222",       # public DNS
+            "192.168.1.1", "192.168.0.1", "10.0.0.1",      # common gateways
+        )
+        for target in targets:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            try:
+                sock.connect((target, 80))
+                ip = sock.getsockname()[0]
+                if ip and not ip.startswith("127."):
+                    return ip
+            except OSError:
+                continue
+            finally:
+                sock.close()
+
+        try:
+            for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+                addr = info[4][0]
+                if addr and not addr.startswith("127."):
+                    return addr
+        except Exception:
+            pass
+
+        logger.warning(
+            "Could not determine a non-loopback LAN IP; falling back to "
+            "127.0.0.1. Other peers will not be able to reach this node."
+        )
+        return "127.0.0.1"
 
     def _build_service_info(self):
         """Build the ServiceInfo that represents our announcement.
@@ -282,8 +305,14 @@ class Discovery:
         )
 
     def _register_service(self):
-        """Send our announcement onto the network."""
-        self._zeroconf.register_service(self._service_info)
+        """Send our announcement onto the network.
+        
+        allow_name_change=True tells Zeroconf to automatically append a
+        suffix (e.g. "(2)") if the exact instance name is already taken
+        on the network. This prevents NonUniqueNameException when a
+        previous instance of the app crashed without unregistering.
+        """
+        self._zeroconf.register_service(self._service_info, allow_name_change=True)
 
     def _unregister_service(self):
         """Retract our announcement (good citizen on shutdown)."""

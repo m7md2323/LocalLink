@@ -105,23 +105,23 @@ class NewRoomModal(ModalScreen[Optional[dict]]):
     DEFAULT_CSS = """
     NewRoomModal {
         align: center middle;
-        background: black;
+        background: rgba(24, 24, 37, 0.8);
     }
     #new-room-dialog {
         width: 52;
         height: auto;
-        border: round green;
-        background: black;
-        color: green;
+        border: round #89b4fa;
+        background: #1e1e2e;
+        color: #cdd6f4;
         padding: 1 2;
     }
     #new-room-dialog .title {
         text-style: bold;
-        color: green;
+        color: #89b4fa;
     }
     #new-room-dialog Label {
         margin-top: 1;
-        color: green;
+        color: #cdd6f4;
     }
     #row-private {
         height: auto;
@@ -130,7 +130,7 @@ class NewRoomModal(ModalScreen[Optional[dict]]):
     #row-private Static {
         margin-right: 1;
         margin-top: 1;
-        color: green;
+        color: #cdd6f4;
     }
     #password-block {
         display: none;
@@ -145,9 +145,13 @@ class NewRoomModal(ModalScreen[Optional[dict]]):
     }
     #modal-buttons Button {
         margin-left: 1;
-        background: black;
-        color: green;
-        border: solid green;
+        background: #313244;
+        color: #cdd6f4;
+        border: none;
+    }
+    #modal-buttons Button.primary {
+        background: #89b4fa;
+        color: #11111b;
     }
     """
 
@@ -203,6 +207,77 @@ class NewRoomModal(ModalScreen[Optional[dict]]):
 
 
 # ---------------------------------------------------------------------------
+# Modal: "Setup Name"
+# ---------------------------------------------------------------------------
+
+class SetupModal(ModalScreen[Optional[str]]):
+    """Modal to prompt for display name on first run."""
+
+    DEFAULT_CSS = """
+    SetupModal {
+        align: center middle;
+        background: rgba(24, 24, 37, 0.8);
+    }
+    #setup-dialog {
+        width: 40;
+        height: auto;
+        border: round #89b4fa;
+        background: #1e1e2e;
+        color: #cdd6f4;
+        padding: 1 2;
+    }
+    #setup-dialog .title {
+        text-style: bold;
+        color: #89b4fa;
+    }
+    #setup-dialog Label {
+        margin-top: 1;
+        color: #cdd6f4;
+    }
+    #setup-buttons {
+        height: auto;
+        align-horizontal: right;
+        margin-top: 1;
+    }
+    #setup-buttons Button {
+        margin-left: 1;
+        background: #313244;
+        color: #cdd6f4;
+        border: none;
+    }
+    #setup-buttons Button.primary {
+        background: #89b4fa;
+        color: #11111b;
+    }
+    """
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="setup-dialog"):
+            yield Static("Welcome to LocalLink!", classes="title")
+            yield Label("Enter your Display Name:")
+            yield Input(id="input-display-name", placeholder="e.g. Alice")
+            with Horizontal(id="setup-buttons"):
+                yield Button("Join Mesh", id="btn-join", variant="primary")
+
+    def on_mount(self) -> None:
+        self.query_one("#input-display-name", Input).focus()
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        self._submit()
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "btn-join":
+            self._submit()
+
+    def _submit(self) -> None:
+        name = self.query_one("#input-display-name", Input).value.strip()
+        if not name:
+            self.notify("Name cannot be empty", severity="warning")
+            return
+        self.dismiss(name)
+
+
+# ---------------------------------------------------------------------------
 # Main app
 # ---------------------------------------------------------------------------
 
@@ -212,60 +287,64 @@ class LocalLinkApp(App):
 
     CSS = """
     Screen {
-        background: black;
-        color: green;
+        background: #1e1e2e;
+        color: #cdd6f4;
     }
     #main-area {
         height: 1fr;
     }
     #sidebar {
         width: 26;
-        background: black;
-        color: green;
-        border-right: solid green;
+        background: #181825;
+        color: #cdd6f4;
+        border-right: solid #313244;
         padding: 0 1;
     }
     #sidebar > Static {
-        color: green;
+        color: #a6adc8;
     }
     #chat-area {
-        background: black;
-        color: green;
+        background: #1e1e2e;
+        color: #cdd6f4;
         padding: 0 1;
     }
     #chat-title {
-        color: green;
+        color: #89b4fa;
         text-style: bold;
         margin-bottom: 1;
     }
     #message-log {
         height: 1fr;
-        background: black;
-        color: green;
+        background: #1e1e2e;
+        color: #cdd6f4;
         border: none;
         padding: 0 1;
     }
     #input-box {
         height: 3;
-        background: black;
-        color: green;
-        border: solid green;
+        background: #181825;
+        color: #cdd6f4;
+        border: solid #313244;
     }
     ListView {
-        background: black;
-        color: green;
+        background: #181825;
+        color: #cdd6f4;
     }
     ListView > ListItem {
-        background: black;
-        color: green;
+        background: #181825;
+        color: #cdd6f4;
+    }
+    ListView > ListItem.--highlight {
+        background: #313244;
+        color: #cdd6f4;
     }
     Header {
-        background: black;
-        color: green;
+        background: #11111b;
+        color: #cdd6f4;
     }
     Footer {
-        background: black;
-        color: green;
+        background: #11111b;
+        color: #cdd6f4;
     }
     """
 
@@ -290,6 +369,11 @@ class LocalLinkApp(App):
         # currently selected room. Reset on room switch so the log
         # re-renders from scratch.
         self._rendered_count: int = 0
+        # Per-peer timestamp of the last room-list mirror. We re-pull a
+        # peer's public rooms at most every MIRROR_INTERVAL seconds so a
+        # peer that creates a new room while we're both online gets
+        # picked up without spamming /api/rooms every refresh tick.
+        self._mirrored_peers: dict[str, float] = {}
 
     # ---- Compose ----------------------------------------------------------
 
@@ -322,6 +406,18 @@ class LocalLinkApp(App):
         self.set_interval(5.0, self._refresh_status)
         self.query_one("#input-box", Input).focus()
 
+        self_peer = api.get_self_peer()
+        # Trigger the setup modal if either (a) the name is the
+        # auto-generated peer_id (legacy behaviour) or (b) the name is
+        # empty (the new bootstrap default that lets us prompt the
+        # user instead of leaking the peer_id into the UI).
+        if self_peer and (not self_peer.name or self_peer.name == self_peer.peer_id):
+            def _on_setup_dismiss(name: Optional[str]) -> None:
+                if name:
+                    api.update_self_name(self.self_peer_id, name)
+                    self._refresh_peers()
+            self.push_screen(SetupModal(), _on_setup_dismiss)
+
     # ---- Refresh loops ----------------------------------------------------
 
     def _refresh_rooms(self) -> None:
@@ -351,6 +447,10 @@ class LocalLinkApp(App):
 
     def _refresh_peers(self) -> None:
         """Pull the peer list and update the name cache for the chat."""
+        # Mark peers offline if mDNS hasn't refreshed them in a while.
+        # Compensates for the lazy remove_service notification that
+        # otherwise keeps ghost peers showing "online" for 1+ minutes.
+        api.prune_stale_peers(max_age_seconds=90.0)
         peers = api.list_peers()
         self._peer_names = {p.peer_id: (p.name or p.peer_id[:8]) for p in peers}
         lv = self.query_one("#peer-list", ListView)
@@ -364,7 +464,41 @@ class LocalLinkApp(App):
                 label = f"  {name} ({status})"
             lv.append(ListItem(Static(label)))
 
+    def _auto_mirror_remote_rooms(self) -> None:
+        """Pull each online peer's public rooms and mirror any new ones
+        locally so the sidebar populates without the user having to type
+        ``/j <room_id>`` by hand.
+
+        Idempotent: ``mirror_remote_room`` returns the existing row if
+        the room is already mirrored, and ``ensure_membership`` is a
+        no-op if we're already a member. A peer is re-queried at most
+        every ``MIRROR_INTERVAL`` seconds, so a peer that creates a
+        new room while both nodes are online gets picked up promptly
+        without spamming ``GET /api/rooms`` on every 3s tick.
+        """
+        MIRROR_INTERVAL = 30.0
+        now = time.time()
+        online = [p for p in api.list_online_peers() if p.peer_id != self.self_peer_id]
+        for peer in online:
+            last = self._mirrored_peers.get(peer.peer_id, 0.0)
+            if now - last < MIRROR_INTERVAL:
+                continue
+            try:
+                remote_rooms = api.list_remote_rooms(peer)
+            except Exception:
+                self._mirrored_peers[peer.peer_id] = now
+                continue
+            for room_meta in remote_rooms:
+                try:
+                    mirrored = api.mirror_remote_room(peer, room_meta)
+                except Exception:
+                    continue
+                if mirrored is not None:
+                    api.ensure_membership(mirrored.room_id, self.self_peer_id)
+            self._mirrored_peers[peer.peer_id] = now
+
     def _refresh_rooms_and_peers(self) -> None:
+        self._auto_mirror_remote_rooms()
         self._refresh_rooms()
         self._refresh_peers()
         # Names may have changed (new peers via mDNS) — re-render the
@@ -452,27 +586,43 @@ class LocalLinkApp(App):
         self._send_message(room_id, text)
 
     def _send_message(self, room_id: str, text: str) -> None:
-        """Offline-first send: persist locally exactly once, then fan
-        out to every online peer. The local copy is the durable record;
-        network delivery is best-effort per peer.
+        """Offline-first send: persist locally immediately (fast DB
+        write), then fan out to online peers in a background worker
+        thread so a slow or dead peer never freezes the UI.
+
+        The local copy is the durable record; network delivery is
+        best-effort per peer.
         """
         saved = api.save_outgoing(room_id, text, self.self_peer_id)
         if saved is None:
             self.notify("Could not save message (not a member of this room?)",
                         severity="error")
             return
+        self._refresh_messages(force=True)
 
         online = [p for p in api.list_online_peers() if p.peer_id != self.self_peer_id]
         if not online:
             self.notify("Saved locally — no peers online", severity="information")
-        else:
-            delivered = 0
-            for peer in online:
-                if api.deliver_to_peer(peer, room_id, text, self.self_peer_id):
-                    delivered += 1
-            if delivered == 0:
-                self.notify("Saved locally — peers unreachable", severity="warning")
-        self._refresh_messages(force=True)
+            return
+
+        self.run_worker(
+            lambda: self._deliver_to_peers(room_id, text, list(online)),
+            thread=True, exclusive=False,
+        )
+
+    def _deliver_to_peers(self, room_id: str, text: str, peers: list) -> None:
+        """Run in a worker thread; POST the message to each online
+        peer, then notify the UI of the outcome."""
+        delivered = sum(
+            1 for p in peers
+            if api.deliver_to_peer(p, room_id, text, self.self_peer_id)
+        )
+        if delivered == 0:
+            self.call_from_thread(
+                lambda: self.notify(
+                    "Saved locally — peers unreachable", severity="warning"
+                )
+            )
 
     # ---- Slash commands ---------------------------------------------------
 

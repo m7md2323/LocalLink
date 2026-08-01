@@ -42,6 +42,16 @@ def list_online_peers() -> list[Peer]:
     return database.list_peers(online_only=True)
 
 
+def prune_stale_peers(max_age_seconds: float = 90.0) -> int:
+    """Mark peers offline if they haven't been seen in a while.
+
+    The TUI calls this on each refresh tick so the sidebar catches up
+    with reality faster than mDNS's TTL-based remove events would
+    allow. Returns the number of peers marked offline.
+    """
+    return database.prune_stale_peers(max_age_seconds=max_age_seconds)
+
+
 def list_rooms_for(peer_id: str) -> list[Room]:
     """Rooms this peer is a member of, most recently joined first.
 
@@ -58,16 +68,24 @@ def list_messages(room_id: str, peer_id: str, limit: Optional[int] = None) -> li
 
 
 def get_self_peer() -> Optional[Peer]:
-    """Look up the local self peer by its env-configured peer_id.
+    """Look up the local self peer.
 
-    Returns None if the bootstrap in run.py hasn't run yet, or if
-    LOCALLINK_NODE_ID is unset (rare; the TUI is normally only
-    launched via run.py).
+    Derives the peer_id the same way bootstrap does: from the env var
+    LOCALLINK_NODE_ID if set, otherwise from the stable signing key on
+    disk. This means it works correctly even when no .env is present
+    (i.e. when running as a standalone .exe).
     """
     import os
     peer_id = os.environ.get("LOCALLINK_NODE_ID", "").strip()
     if not peer_id:
-        return None
+        try:
+            import hashlib
+            from engine.security.keys import load_or_create_signing_key
+            signing_key = load_or_create_signing_key()
+            key_hash = hashlib.sha256(bytes(signing_key)).hexdigest()[:12]
+            peer_id = f"ll-{key_hash}"
+        except Exception:
+            return None
     return database.get_peer(peer_id)
 
 
@@ -198,6 +216,14 @@ def mirror_remote_room(peer: Peer, room_meta: dict) -> Optional[Room]:
     if existing is not None:
         return existing
 
+    # Disambiguate the local display name so two peers' identically-named
+    # rooms (most commonly "default") don't collide in our sidebar. The
+    # room_id is unchanged, so cross-node message routing still works —
+    # only our local label differs. If the remote peer has no name yet,
+    # fall back to the raw name.
+    peer_label = (peer.name or "").strip()
+    local_name = f"{peer_label}'s {name}" if peer_label else name
+
     # Direct Peewee create because the storage-layer create_room()
     # validates that the creator is a known local peer. For a remote
     # peer's room, the creator is the OTHER node — we have their peer
@@ -206,7 +232,7 @@ def mirror_remote_room(peer: Peer, room_meta: dict) -> Optional[Room]:
     try:
         return Room.create(
             room_id=room_id,
-            name=name,
+            name=local_name,
             creator_id=creator_id,
             is_public=is_public,
             password_hash=None,
@@ -232,4 +258,14 @@ def ensure_membership(room_id: str, peer_id: str) -> bool:
     except Exception as e:
         logger.warning("ensure_membership failed for room=%s peer=%s: %s",
                        room_id, peer_id, e)
+        return False
+
+
+def update_self_name(peer_id: str, new_name: str) -> bool:
+    """Update the display name of the local peer in the database."""
+    try:
+        database.save_peer({"peer_id": peer_id, "name": new_name})
+        return True
+    except Exception as e:
+        logger.warning("update_self_name failed: %s", e)
         return False
